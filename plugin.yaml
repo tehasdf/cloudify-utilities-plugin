@@ -24,6 +24,8 @@ plugins:
 
   scalelist: *utilities_plugin
 
+  secrets: *utilities_plugin
+
 data_types:
 
   cloudify.datatypes.Blueprint:
@@ -489,6 +491,49 @@ node_types:
               default: {}
             template_file:
               default: ''
+
+  cloudify.nodes.secrets.Writer:
+    derived_from: cloudify.nodes.Root
+    properties:
+      entries:
+        default: {}
+      do_not_delete:
+        type: boolean
+        default: false
+      variant:
+        type: string
+        required: false
+      separator:
+        type: string
+        required: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: secrets.cloudify_secrets.tasks.create
+        delete:
+          implementation: secrets.cloudify_secrets.tasks.delete
+      cloudify.interfaces.operations:
+        update:
+          implementation: secrets.cloudify_secrets.tasks.update
+
+  cloudify.nodes.secrets.Reader:
+    derived_from: cloudify.nodes.Root
+    properties:
+      keys:
+        default: []
+      variant:
+        type: string
+        required: false
+      separator:
+        type: string
+        required: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: secrets.cloudify_secrets.tasks.read
+      cloudify.interfaces.operations:
+        update:
+          implementation: secrets.cloudify_secrets.tasks.read
 
 relationships:
 
