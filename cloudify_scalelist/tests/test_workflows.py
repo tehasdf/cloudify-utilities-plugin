@@ -311,7 +311,7 @@ class TestScaleList(unittest.TestCase):
             fake_run_scale.assert_called_with(
                 _ctx, {'one_scale': {'instances': 11}},
                 {'one': [{'name': 'one'}]}, '_transaction',
-                'transaction_value', False, False)
+                'transaction_value', False, False, node_sequence=None)
             # can downscale without errors, ignore failure
             fake_run_scale = Mock(return_value=None)
             with patch(
@@ -329,7 +329,7 @@ class TestScaleList(unittest.TestCase):
             fake_run_scale.assert_called_with(
                 _ctx, {'one_scale': {'instances': 11}},
                 {'one': [{'name': 'one'}]}, '_transaction',
-                'transaction_value', False, True)
+                'transaction_value', False, True, node_sequence=None)
 
     def test_run_scale_settings(self):
         _ctx = self._gen_ctx()
@@ -461,9 +461,12 @@ class TestScaleList(unittest.TestCase):
                             _ctx, scale_settings, {},
                             ignore_rollback_failure=False)
                 fake_uninstall_instances.assert_called_with(
-                    _ctx, _ctx.graph_mode(),
-                    set([added_instance]), set([related_instance]),
-                    False)
+                    ctx=_ctx,
+                    graph=_ctx.graph_mode(),
+                    removed=set([added_instance]),
+                    related=set([related_instance]),
+                    ignore_failure=False,
+                    node_sequence=None)
             fake_install_node_instances.assert_called_with(
                 graph=_ctx.graph_mode(),
                 node_instances=set([added_instance]),
@@ -615,7 +618,7 @@ class TestScaleList(unittest.TestCase):
                         'removed_ids_include_hint': ['a_id']
                     }
                 }, {}, instances_remove_ids=['a_id'],
-                ignore_failure=False)
+                ignore_failure=False, node_sequence=None)
 
     def test_scaledownlist(self):
         _ctx = self._gen_ctx()
@@ -644,7 +647,7 @@ class TestScaleList(unittest.TestCase):
                         'removed_ids_include_hint': ['a_id', 'b_id']
                     }
                 }, {}, instances_remove_ids=['a_id', 'b_id'],
-                ignore_failure=False)
+                ignore_failure=False, node_sequence=None)
 
             # we have downscale issues
             fake_run_scale = Mock(side_effect=ValueError("No Down Scale!"))
@@ -692,9 +695,11 @@ class TestScaleList(unittest.TestCase):
                         stderr=-1, stdout=-1)
                     uninstall_process.communicate.assert_called_with()
                 fake_uninstall_instances.assert_called_with(
-                    _ctx, _ctx.graph_mode(),
-                    [a_instance, b_instance], [],
-                    False)
+                    ctx=_ctx,
+                    graph=_ctx.graph_mode(),
+                    removed=[a_instance, b_instance],
+                    related=[],
+                    ignore_failure=False, node_sequence=None)
             fake_run_scale.assert_called_with(
                 _ctx, {
                     'alfa_types': {
@@ -702,7 +707,7 @@ class TestScaleList(unittest.TestCase):
                         'removed_ids_include_hint': ['a_id', 'b_id']
                     }
                 }, {}, instances_remove_ids=['a_id', 'b_id'],
-                ignore_failure=False)
+                ignore_failure=False, node_sequence=None)
 
     def test_deployments_get_groups(self):
         _ctx = self._gen_ctx()
@@ -1049,7 +1054,8 @@ class TestScaleList(unittest.TestCase):
                 workflows._uninstall_instances(_ctx, _ctx.graph_mode(),
                                                [a_instance, b_instance],
                                                [c_instance],
-                                               True)
+                                               True,
+                                               node_sequence=[])
             fake_cleanup_instances.assert_called_with(_ctx, ["a_id", "b_id"])
         fake_uninstall_node_instances.assert_called_with(
             graph=_ctx.graph_mode(),
