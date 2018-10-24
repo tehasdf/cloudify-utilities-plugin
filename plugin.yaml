@@ -609,6 +609,10 @@ workflows:
         default: ""
         description: >
            Optional, transaction value.
+      node_sequence:
+        default: false
+        description: >
+          Optional, sequence of nodes for run for override relationships.
 
   scaledownlist:
     mapping: scalelist.cloudify_scalelist.workflows.scaledownlist
@@ -656,6 +660,10 @@ workflows:
         default: false
         description: >
           Get all instances for filter. Required 4.3+ manager.
+      node_sequence:
+        default: false
+        description: >
+          Optional, sequence of nodes for run for override relationships.
 
   update_operation_filtered:
     mapping: scalelist.cloudify_scalelist.workflows.execute_operation
