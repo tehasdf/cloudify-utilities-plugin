@@ -72,7 +72,7 @@ class connection(object):
         self._write_to_log(recieved)
         if not recieved:
             if self.logger:
-                self.logger.info("We have empty response.")
+                self.logger.warn("We have empty response.")
             time.sleep(1)
         return recieved
 
@@ -145,7 +145,7 @@ class connection(object):
         prefix_pos = text.find(prefix)
         if prefix_pos == -1:
             if self.logger:
-                self.logger.info(
+                self.logger.warn(
                     "Have not found '%s' in response: '%s'" % (
                         prefix, repr(text)
                     )
@@ -153,7 +153,7 @@ class connection(object):
         else:
             if text[:prefix_pos].strip():
                 if self.logger:
-                    self.logger.info(
+                    self.logger.warn(
                         "Some mess before '%s' in response: '%s'" % (
                             prefix, repr(text)
                         )

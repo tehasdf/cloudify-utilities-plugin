@@ -263,6 +263,7 @@ def _get_scale_list(ctx, scalable_entity_properties, property_type):
 
 def _process_node_instances(graph, node_instances, ignore_failure,
                             node_instance_subgraph_func, node_sequence):
+    ctx.logger.info("Scale sequence: {}".format(repr(node_sequence)))
     subgraphs = {}
     node_graphs = {}
     for node_instance in node_instances:
@@ -277,6 +278,9 @@ def _process_node_instances(graph, node_instances, ignore_failure,
     for node_id in node_sequence:
         for target_instance in node_graphs[node_id]:
             for source_instance in previous_level:
+                ctx.logger.info("Scale dependency: {}->{}"
+                                .format(source_instance.id,
+                                        target_instance.id))
                 graph.add_dependency(subgraphs[source_instance.id],
                                      subgraphs[target_instance.id])
         previous_level = node_graphs[node_id]
