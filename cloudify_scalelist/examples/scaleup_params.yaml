@@ -1,3 +1,7 @@
+node_sequence:
+- two
+- three
+- four
 scalable_entity_properties:
   two:
   - resource_name: two1
