@@ -410,12 +410,12 @@ class TestScaleList(unittest.TestCase):
                 "uninstall_node_instances",
                 fake_uninstall_node_instances
             ):
-                with self.assertRaisesRegexp(
-                    Exception,
-                    "Instance 'a' not in proposed list \['b'\]."
-                ):
+                with self.assertRaises(Exception) as error:
                     workflows._run_scale_settings(_ctx, scale_settings, {},
                                                   instances_remove_ids=['b'])
+                self.assertEqual(
+                    "Instance 'a' not in proposed list ['b'].",
+                    str(error.exception))
             fake_uninstall_node_instances.assert_not_called()
         _ctx.deployment.start_modification.assert_called_with(
             scale_settings
