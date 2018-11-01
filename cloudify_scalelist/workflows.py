@@ -277,14 +277,19 @@ def _process_node_instances(ctx, graph, node_instances, ignore_failure,
     ctx.logger.info("Scale levels: {}".format(repr(node_graphs)))
     previous_level = []
     for node_id in node_sequence:
-        for target_instance in node_graphs[node_id]:
+        # use get for skip instances with unknow type
+        if not node_graphs.get(node_id, []):
+            continue
+        current_level_instances = node_graphs[node_id]
+        for target_instance in current_level_instances:
             for source_instance in previous_level:
                 ctx.logger.info("Scale dependency: {}->{}"
                                 .format(source_instance.id,
                                         target_instance.id))
                 graph.add_dependency(subgraphs[source_instance.id],
                                      subgraphs[target_instance.id])
-        previous_level = node_graphs[node_id]
+        # replace previous with current instances
+        previous_level = current_level_instances
     graph.execute()
 
 
