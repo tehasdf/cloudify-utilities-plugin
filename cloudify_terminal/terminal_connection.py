@@ -142,8 +142,12 @@ class connection(object):
         return self.hostname
 
     def _cleanup_response(self, text, prefix, warning_examples,
-                          error_examples):
-        if not error_examples and not warning_examples:
+                          error_examples, critical_examples):
+        if (
+            not error_examples and
+            not warning_examples and
+            not critical_examples
+        ):
             return text.strip()
 
         # check command echo
@@ -178,22 +182,33 @@ class connection(object):
                 response = text
 
         # check for warnings started only from new line
-        warnings_with_new_line = ["\n" + warning
-                                  for warning in warning_examples]
-        if self._find_any_in(response, warnings_with_new_line) != -1:
-            if not self.is_closed():
-                self.close()
-            raise RecoverableWarning(
-                "Looks as we have warning in response: %s" % (text)
-            )
+        if warning_examples:
+            warnings_with_new_line = ["\n" + warning
+                                      for warning in warning_examples]
+            if self._find_any_in(response, warnings_with_new_line) != -1:
+                # close is not needed, we will rerun later
+                raise RecoverableWarning(
+                    "Looks as we have warning in response: %s" % (text)
+                )
         # check for errors started only from new line
-        errors_with_new_line = ["\n" + error for error in error_examples]
-        if self._find_any_in(response, errors_with_new_line) != -1:
-            if not self.is_closed():
-                self.close()
-            raise cfy_exc.RecoverableError(
-                "Looks as we have error in response: %s" % (text)
-            )
+        if error_examples:
+            errors_with_new_line = ["\n" + error for error in error_examples]
+            if self._find_any_in(response, errors_with_new_line) != -1:
+                if not self.is_closed():
+                    self.close()
+                raise cfy_exc.RecoverableError(
+                    "Looks as we have error in response: %s" % (text)
+                )
+        # check for criticals started only from new line
+        if critical_examples:
+            criticals_with_new_line = ["\n" + critical
+                                       for critical in critical_examples]
+            if self._find_any_in(response, criticals_with_new_line) != -1:
+                if not self.is_closed():
+                    self.close()
+                raise cfy_exc.NonRecoverableError(
+                    "Looks as we have critical in response: %s" % (text)
+                )
         return response.strip()
 
     def _send_response(self, line, responses):
@@ -211,7 +226,8 @@ class connection(object):
         return -1
 
     def run(self, command, prompt_check=None, error_examples=None,
-            warning_examples=None, responses=None):
+            warning_examples=None, critical_examples=None,
+            responses=None):
         if not prompt_check:
             prompt_check = DEFAULT_PROMT
 
@@ -236,7 +252,8 @@ class connection(object):
                         text=message_from_server,
                         prefix=response_prefix,
                         warning_examples=warning_examples,
-                        error_examples=error_examples)
+                        error_examples=error_examples,
+                        critical_examples=critical_examples)
                 # if we have something like question
                 # we can skip check for promt or new line
                 if responses:
@@ -272,11 +289,13 @@ class connection(object):
                     text=message_from_server,
                     prefix=response_prefix,
                     warning_examples=warning_examples,
-                    error_examples=error_examples)
+                    error_examples=error_examples,
+                    critical_examples=critical_examples)
         return self._cleanup_response(text=message_from_server,
                                       prefix=response_prefix,
                                       warning_examples=warning_examples,
-                                      error_examples=error_examples)
+                                      error_examples=error_examples,
+                                      critical_examples=critical_examples)
 
     def is_closed(self):
         if self.conn:

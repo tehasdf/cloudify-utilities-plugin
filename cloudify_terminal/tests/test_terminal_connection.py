@@ -283,7 +283,15 @@ class TestTasks(unittest.TestCase):
     def test_cleanup_response_empty(self):
         conn = terminal_connection.connection()
 
-        self.assertEqual(conn._cleanup_response(" text ", ":", []), "text")
+        self.assertEqual(
+            conn._cleanup_response(
+                text=" text ",
+                prefix=":",
+                warning_examples=[],
+                error_examples=[],
+                critical_examples=[]
+            ),
+            "text")
 
     def test_cleanup_response_with_prompt(self):
         conn = terminal_connection.connection()
@@ -291,7 +299,13 @@ class TestTasks(unittest.TestCase):
         conn.logger = MagicMock()
 
         self.assertEqual(
-            conn._cleanup_response("prompt> text ", "prompt>", ['error']),
+            conn._cleanup_response(
+                text="prompt> text ",
+                prefix="prompt>",
+                warning_examples=[],
+                error_examples=['error'],
+                critical_examples=[]
+            ),
             "text"
         )
 
@@ -302,7 +316,13 @@ class TestTasks(unittest.TestCase):
         conn.logger = MagicMock()
 
         self.assertEqual(
-            conn._cleanup_response("prmpt> text ", "prompt>", ['error']),
+            conn._cleanup_response(
+                text="prmpt> text ",
+                prefix="prompt>",
+                warning_examples=[],
+                error_examples=['error'],
+                critical_examples=[]
+            ),
             "prmpt> text"
         )
 
@@ -315,7 +335,11 @@ class TestTasks(unittest.TestCase):
 
         self.assertEqual(
             conn._cleanup_response(
-                "..prompt> text\n some", "prompt>", ['error']
+                text="..prompt> text\n some",
+                prefix="prompt>",
+                warning_examples=[],
+                error_examples=['error'],
+                critical_examples=[]
             ),
             "some"
         )
@@ -331,7 +355,11 @@ class TestTasks(unittest.TestCase):
         # check with closed connection
         with self.assertRaises(RecoverableError) as error:
             conn._cleanup_response(
-                "prompt> text\n some\nerror", "prompt>", ['error']
+                text="prompt> text\n some\nerror",
+                prefix="prompt>",
+                warning_examples=[],
+                error_examples=['error'],
+                critical_examples=[]
             )
 
         conn.logger.info.assert_not_called()
@@ -344,9 +372,37 @@ class TestTasks(unittest.TestCase):
         # check with alive connection
         conn.conn = MagicMock()
         conn.conn.closed = False
+        # warnings?
+        with self.assertRaises(
+            terminal_connection.RecoverableWarning
+        ) as error:
+            conn._cleanup_response(
+                text="prompt> text\n some\nerror",
+                prefix="prompt>",
+                warning_examples=['error'],
+                error_examples=[],
+                critical_examples=[]
+            )
+        conn.conn.close.assert_not_called()
+        # errors?
         with self.assertRaises(RecoverableError) as error:
             conn._cleanup_response(
-                "prompt> text\n some\nerror", "prompt>", ['error']
+                text="prompt> text\n some\nerror",
+                prefix="prompt>",
+                warning_examples=[],
+                error_examples=['error'],
+                critical_examples=[]
+            )
+        conn.conn.close.assert_called_with()
+        # critical?
+        conn.conn.close = MagicMock()
+        with self.assertRaises(RecoverableError) as error:
+            conn._cleanup_response(
+                text="prompt> text\n some\nerror",
+                prefix="prompt>",
+                warning_examples=[],
+                error_examples=['error'],
+                critical_examples=[]
             )
         conn.conn.close.assert_called_with()
 

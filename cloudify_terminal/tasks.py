@@ -31,7 +31,7 @@ def _rerun(ctx, func, args, kwargs, retry_count=10, retry_sleep=15):
             retry_count -= 1
             time.sleep(retry_sleep)
 
-    raise cfy_exc.NonRecoverableError(
+    raise cfy_exc.RecoverableError(
         "Failed to rerun: {}:{}".format(repr(args), repr(kwargs)))
 
 
@@ -79,6 +79,7 @@ def run(**kwargs):
     global_promt_check = terminal_auth.get('promt_check')
     global_error_examples = terminal_auth.get('errors', [])
     global_warning_examples = terminal_auth.get('warnings', [])
+    global_critical_examples = terminal_auth.get('criticals', [])
     exit_command = terminal_auth.get('exit_command', 'exit')
     # save logs to debug file
     log_file_name = None
@@ -113,6 +114,7 @@ def run(**kwargs):
         promt_check = call.get('promt_check', global_promt_check)
         error_examples = call.get('errors', global_error_examples)
         warning_examples = call.get('warnings', global_warning_examples)
+        critical_examples = call.get('criticals', global_critical_examples)
         # use action if exist
         operation = call.get('action', "")
         # use template if have
@@ -170,6 +172,7 @@ def run(**kwargs):
                     "prompt_check": promt_check,
                     "error_examples": error_examples,
                     "warning_examples": warning_examples,
+                    "critical_examples": critical_examples,
                     "responses": responses
                 },
                 retry_count=call.get('retry_count', 10),
