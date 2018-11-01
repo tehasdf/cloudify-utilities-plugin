@@ -91,13 +91,13 @@ def run(**kwargs):
             "Communication logs will be saved to %s" % log_file_name
         )
 
-    connection = terminal_connection.connection()
+    connection = terminal_connection.RawConnection(logger=ctx.logger,
+                                                   log_file_name=log_file_name)
 
     for ip in ip_list:
         try:
             prompt = connection.connect(ip, user, password, key_content, port,
-                                        global_promt_check, logger=ctx.logger,
-                                        log_file_name=log_file_name)
+                                        global_promt_check)
             ctx.logger.info("Will be used: " + ip)
             break
 

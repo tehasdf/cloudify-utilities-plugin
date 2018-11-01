@@ -25,10 +25,9 @@ class RecoverableWarning(cfy_exc.RecoverableError):
     pass
 
 
-class connection(object):
+class BaseConnection(object):
 
-    # ssh connection
-    ssh = None
+    # connection
     conn = None
 
     # global settings
@@ -37,6 +36,12 @@ class connection(object):
 
     # buffer for same packages, will save partial packages between calls
     buff = ""
+
+    def __init__(self, logger=None, log_file_name=None):
+        self.logger = logger
+        self.log_file_name = log_file_name
+        self.conn = None
+        self.buff = ""
 
     def _write_to_log(self, text, output=True):
         # write to log communication dump
@@ -100,14 +105,17 @@ class connection(object):
             backspace = text.find("\b")
         return text
 
+
+class RawConnection(BaseConnection):
+
+    # ssh connection
+    ssh = None
+
     def connect(self, ip, user, password=None, key_content=None, port=22,
-                prompt_check=None, logger=None, log_file_name=None):
+                prompt_check=None):
         """open connection"""
         if not prompt_check:
             prompt_check = DEFAULT_PROMT
-
-        self.logger = logger
-        self.log_file_name = log_file_name
 
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -123,7 +131,6 @@ class connection(object):
                              timeout=5, allow_agent=False, look_for_keys=False)
 
         self.conn = self.ssh.invoke_shell()
-        self.buff = ""
 
         while self._find_any_in(self.buff, prompt_check) == -1:
             self.buff += self._conn_recv(256)

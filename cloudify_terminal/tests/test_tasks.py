@@ -139,10 +139,10 @@ class TestTasks(unittest.TestCase):
 
     @patch('time.sleep', Mock())
     def test_run_auth_enabled_logs(self):
-        _ctx = self._gen_ctx()
+        self._gen_ctx()
         connection_mock = Mock()
         connection_mock.connect = Mock(side_effect=OSError("e"))
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             with self.assertRaises(OperationRetry):
                 tasks.run(
@@ -151,9 +151,7 @@ class TestTasks(unittest.TestCase):
                                    'password': 'password', 'store_logs': True}
                 )
         connection_mock.connect.assert_called_with(
-            'ip', 'user', 'password', None, 22, None,
-            log_file_name='/tmp/terminal-execution_id_node_name_None.log',
-            logger=_ctx.logger)
+            'ip', 'user', 'password', None, 22, None)
 
     @patch('time.sleep', Mock())
     def test_run_without_any_real_calls(self):
@@ -162,7 +160,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.connect = Mock(return_value="")
         connection_mock.run = Mock(return_value="")
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{}],
@@ -179,7 +177,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.connect = Mock(return_value="")
         connection_mock.run = Mock(return_value="localhost")
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{'action': 'hostname'}],
@@ -206,7 +204,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.run = Mock(return_value="localhost")
         _ctx.get_resource = Mock(side_effect=[False, "bb", "{{ aa }}"])
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{'template': '1.txt'},
@@ -232,7 +230,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.connect = Mock(return_value="")
         connection_mock.run = Mock(return_value="localhost")
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{'template_text': ""},
@@ -258,7 +256,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.connect = Mock(return_value="")
         connection_mock.run = Mock(return_value="localhost")
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{'action': 'hostname\n \nls',
@@ -283,7 +281,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.connect = Mock(return_value="")
         connection_mock.run = Mock(return_value="localhost")
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{'action': 'hostname', 'save_to': 'place_for_save',
@@ -313,7 +311,7 @@ class TestTasks(unittest.TestCase):
         connection_mock.run = Mock(return_value="localhost")
         connection_mock.is_closed = Mock(side_effect=[False, True])
 
-        with patch("cloudify_terminal.terminal_connection.connection",
+        with patch("cloudify_terminal.terminal_connection.RawConnection",
                    Mock(return_value=connection_mock)):
             tasks.run(
                 calls=[{}],
