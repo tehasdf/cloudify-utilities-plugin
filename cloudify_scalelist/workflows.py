@@ -274,6 +274,7 @@ def _process_node_instances(ctx, graph, node_instances, ignore_failure,
         subgraphs[node_instance.id] = node_instance_subgraph_func(
             node_instance, graph, ignore_failure=ignore_failure)
 
+    ctx.logger.info("Scale levels: {}".format(repr(node_graphs)))
     previous_level = []
     for node_id in node_sequence:
         for target_instance in node_graphs[node_id]:

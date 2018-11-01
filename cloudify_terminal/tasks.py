@@ -77,8 +77,8 @@ def run(**kwargs):
 
     # additional settings
     global_promt_check = terminal_auth.get('promt_check')
-    global_error_examples = terminal_auth.get('errors', [])
     global_warning_examples = terminal_auth.get('warnings', [])
+    global_error_examples = terminal_auth.get('errors', [])
     global_critical_examples = terminal_auth.get('criticals', [])
     exit_command = terminal_auth.get('exit_command', 'exit')
     # save logs to debug file
@@ -192,7 +192,9 @@ def run(**kwargs):
         ctx.logger.info("Execute close")
         result = connection.run(command=exit_command,
                                 prompt_check=promt_check,
-                                error_examples=error_examples)
+                                warning_examples=global_warning_examples,
+                                error_examples=global_error_examples,
+                                critical_examples=global_error_examples)
         ctx.logger.info("Result of close: " + repr(result))
         time.sleep(1)
 

@@ -225,8 +225,8 @@ class connection(object):
                     return question_pos + len(response['question'])
         return -1
 
-    def run(self, command, prompt_check=None, error_examples=None,
-            warning_examples=None, critical_examples=None,
+    def run(self, command, prompt_check=None, warning_examples=None,
+            error_examples=None, critical_examples=None,
             responses=None):
         if not prompt_check:
             prompt_check = DEFAULT_PROMT

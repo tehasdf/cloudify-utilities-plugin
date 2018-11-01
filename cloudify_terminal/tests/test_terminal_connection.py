@@ -14,7 +14,7 @@
 import unittest
 from mock import MagicMock, patch, mock_open, Mock, call
 
-from cloudify.exceptions import RecoverableError
+from cloudify.exceptions import RecoverableError, NonRecoverableError
 
 import cloudify_terminal.terminal_connection as terminal_connection
 
@@ -106,7 +106,7 @@ class TestTasks(unittest.TestCase):
 
         self.assertEqual(conn._conn_recv(4), "")
 
-        conn.logger.info.assert_called_with('We have empty response.')
+        conn.logger.warn.assert_called_with('We have empty response.')
         conn.conn.recv.assert_called_with(4)
 
     def test_find_any_in(self):
@@ -326,7 +326,7 @@ class TestTasks(unittest.TestCase):
             "prmpt> text"
         )
 
-        conn.logger.info.assert_called_with(
+        conn.logger.warn.assert_called_with(
             "Have not found 'prompt>' in response: ''prmpt> text ''")
 
     def test_cleanup_response_mess_before_prompt(self):
@@ -344,7 +344,7 @@ class TestTasks(unittest.TestCase):
             "some"
         )
 
-        conn.logger.info.assert_called_with(
+        conn.logger.warn.assert_called_with(
             "Some mess before 'prompt>' in response: ''..prompt> "
             "text\\n some''")
 
@@ -396,13 +396,13 @@ class TestTasks(unittest.TestCase):
         conn.conn.close.assert_called_with()
         # critical?
         conn.conn.close = MagicMock()
-        with self.assertRaises(RecoverableError) as error:
+        with self.assertRaises(NonRecoverableError) as error:
             conn._cleanup_response(
                 text="prompt> text\n some\nerror",
                 prefix="prompt>",
                 warning_examples=[],
-                error_examples=['error'],
-                critical_examples=[]
+                error_examples=[],
+                critical_examples=['error']
             )
         conn.conn.close.assert_called_with()
 

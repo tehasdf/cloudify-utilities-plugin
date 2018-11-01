@@ -16,9 +16,12 @@ from mock import Mock, patch, call
 
 from cloudify.state import current_ctx
 from cloudify.mocks import MockCloudifyContext
-from cloudify.exceptions import NonRecoverableError, OperationRetry
+from cloudify.exceptions import (
+    NonRecoverableError, RecoverableError, OperationRetry
+)
 
 import cloudify_terminal.tasks as tasks
+import cloudify_terminal.terminal_connection as terminal_connection
 
 
 class TestTasks(unittest.TestCase):
@@ -184,7 +187,13 @@ class TestTasks(unittest.TestCase):
                                'password': 'password', 'store_logs': True}
             )
 
-        connection_mock.run.assert_called_with('hostname', None, None, [])
+        connection_mock.run.assert_called_with(
+            command='hostname',
+            prompt_check=None,
+            warning_examples=[],
+            error_examples=[],
+            critical_examples=[],
+            responses=[])
 
         self.assertIsNone(
             _ctx.instance.runtime_properties.get('place_for_save'))
@@ -207,8 +216,11 @@ class TestTasks(unittest.TestCase):
                                'password': 'password'}
             )
 
-        connection_mock.run.assert_has_calls([call('bb', None, None, []),
-                                              call('gg', None, None, [])])
+        connection_mock.run.assert_has_calls([
+            call(command='bb', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[], responses=[]),
+            call(command='gg', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[], responses=[])])
 
         self.assertIsNone(
             _ctx.instance.runtime_properties.get('place_for_save'))
@@ -230,8 +242,11 @@ class TestTasks(unittest.TestCase):
                                'password': 'password'}
             )
 
-        connection_mock.run.assert_has_calls([call('bb', None, None, []),
-                                              call('gg', None, None, [])])
+        connection_mock.run.assert_has_calls([
+            call(command='bb', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[], responses=[]),
+            call(command='gg', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[], responses=[])])
 
         self.assertIsNone(
             _ctx.instance.runtime_properties.get('place_for_save'))
@@ -252,9 +267,11 @@ class TestTasks(unittest.TestCase):
                                'password': 'password', 'store_logs': True}
             )
 
-        connection_mock.run.assert_has_calls([call('hostname', None, None, []),
-                                              call('ls', None, None, [])])
-
+        connection_mock.run.assert_has_calls([
+            call(command='hostname', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[], responses=[]),
+            call(command='ls', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[], responses=[])])
         self.assertEqual(
             _ctx.instance.runtime_properties.get('place_for_save'),
             'localhost\nlocalhost')
@@ -277,8 +294,12 @@ class TestTasks(unittest.TestCase):
             )
 
         connection_mock.run.assert_called_with(
-            'hostname', ['#'], ['error'],
-            [{'question': 'yes?', 'answer': 'no'}])
+            command='hostname',
+            prompt_check=['#'],
+            warning_examples=[],
+            error_examples=['error'],
+            critical_examples=[],
+            responses=[{'question': 'yes?', 'answer': 'no'}])
 
         self.assertEqual(
             _ctx.instance.runtime_properties.get('place_for_save'),
@@ -300,11 +321,44 @@ class TestTasks(unittest.TestCase):
                                'password': 'password', 'store_logs': True}
             )
 
-        connection_mock.run.assert_has_calls([call('exit', None, None)])
+        connection_mock.run.assert_has_calls([
+            call(command='exit', prompt_check=None, warning_examples=[],
+                 error_examples=[], critical_examples=[])])
 
         self.assertIsNone(
             _ctx.instance.runtime_properties.get('place_for_save')
         )
+
+    @patch('time.sleep', Mock())
+    def test_rerun(self):
+        _ctx = self._gen_ctx()
+
+        # code always return RecoverableWarning
+        with self.assertRaises(
+            RecoverableError
+        ) as error:
+            tasks._rerun(
+                ctx=_ctx,
+                func=Mock(
+                    side_effect=terminal_connection.RecoverableWarning('A')
+                ),
+                args=[],
+                kwargs={})
+
+        self.assertEqual(str(error.exception), 'Failed to rerun: []:{}')
+
+        # code always return NonRecoverable and call once
+        func_call = Mock(side_effect=NonRecoverableError('A'))
+        with self.assertRaises(
+            NonRecoverableError
+        ) as error:
+            tasks._rerun(
+                ctx=_ctx,
+                func=func_call,
+                args=[],
+                kwargs={})
+        func_call.assert_has_calls([call()])
+        self.assertEqual(str(error.exception), 'A')
 
 
 if __name__ == '__main__':
