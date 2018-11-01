@@ -261,7 +261,7 @@ def _get_scale_list(ctx, scalable_entity_properties, property_type):
     return scalable_entity_dict
 
 
-def _process_node_instances(graph, node_instances, ignore_failure,
+def _process_node_instances(ctx, graph, node_instances, ignore_failure,
                             node_instance_subgraph_func, node_sequence):
     ctx.logger.info("Scale sequence: {}".format(repr(node_sequence)))
     subgraphs = {}
@@ -298,6 +298,7 @@ def _uninstall_instances(ctx, graph, removed, related, ignore_failure,
         if node_sequence:
             subgraph_func = lifecycle.uninstall_node_instance_subgraph
             _process_node_instances(
+                ctx=ctx,
                 graph=graph,
                 node_instances=removed,
                 ignore_failure=ignore_failure,
@@ -371,6 +372,7 @@ def _run_scale_settings(ctx, scale_settings, scalable_entity_properties,
                 if node_sequence:
                     subgraph_func = lifecycle.install_node_instance_subgraph
                     _process_node_instances(
+                        ctx=ctx,
                         graph=graph,
                         node_instances=added,
                         ignore_failure=ignore_failure,

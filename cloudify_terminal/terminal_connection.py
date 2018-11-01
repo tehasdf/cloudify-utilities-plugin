@@ -20,6 +20,11 @@ from cloudify import exceptions as cfy_exc
 DEFAULT_PROMT = ["#", "$"]
 
 
+# recoverable error based on warning
+class RecoverableWarning(cfy_exc.RecoverableError):
+    pass
+
+
 class connection(object):
 
     # ssh connection
@@ -136,8 +141,9 @@ class connection(object):
                 self.logger.info("Wellcome message: " + "\n".join(lines[:-1]))
         return self.hostname
 
-    def _cleanup_response(self, text, prefix, error_examples):
-        if not error_examples:
+    def _cleanup_response(self, text, prefix, warning_examples,
+                          error_examples):
+        if not error_examples and not warning_examples:
             return text.strip()
 
         # check command echo
@@ -171,6 +177,15 @@ class connection(object):
             else:
                 response = text
 
+        # check for warnings started only from new line
+        warnings_with_new_line = ["\n" + warning
+                                  for warning in warning_examples]
+        if self._find_any_in(response, warnings_with_new_line) != -1:
+            if not self.is_closed():
+                self.close()
+            raise RecoverableWarning(
+                "Looks as we have warning in response: %s" % (text)
+            )
         # check for errors started only from new line
         errors_with_new_line = ["\n" + error for error in error_examples]
         if self._find_any_in(response, errors_with_new_line) != -1:
@@ -196,7 +211,7 @@ class connection(object):
         return -1
 
     def run(self, command, prompt_check=None, error_examples=None,
-            responses=None):
+            warning_examples=None, responses=None):
         if not prompt_check:
             prompt_check = DEFAULT_PROMT
 
@@ -217,9 +232,11 @@ class connection(object):
                 # check for close, and only after that for responses
                 if self.conn.closed:
                     message_from_server += self.buff
-                    return self._cleanup_response(message_from_server,
-                                                  response_prefix,
-                                                  error_examples)
+                    return self._cleanup_response(
+                        text=message_from_server,
+                        prefix=response_prefix,
+                        warning_examples=warning_examples,
+                        error_examples=error_examples)
                 # if we have something like question
                 # we can skip check for promt or new line
                 if responses:
@@ -251,13 +268,15 @@ class connection(object):
                 self.buff = self.buff[code_position + 1:]
 
             if self.conn.closed:
-                return self._cleanup_response(message_from_server,
-                                              response_prefix,
-                                              error_examples)
-
-        return self._cleanup_response(message_from_server,
-                                      response_prefix,
-                                      error_examples)
+                return self._cleanup_response(
+                    text=message_from_server,
+                    prefix=response_prefix,
+                    warning_examples=warning_examples,
+                    error_examples=error_examples)
+        return self._cleanup_response(text=message_from_server,
+                                      prefix=response_prefix,
+                                      warning_examples=warning_examples,
+                                      error_examples=error_examples)
 
     def is_closed(self):
         if self.conn:
