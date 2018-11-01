@@ -43,6 +43,7 @@ class BaseConnection(object):
         self.conn = None
         self.buff = ""
 
+    # work with log
     def _write_to_log(self, text, output=True):
         # write to log communication dump
         if output:
@@ -61,6 +62,7 @@ class BaseConnection(object):
             if self.logger:
                 self.logger.info(str(e))
 
+    # connection function
     def _conn_send(self, message):
         curr_pos = 0
         while curr_pos < len(message):
@@ -86,6 +88,34 @@ class BaseConnection(object):
             time.sleep(1)
         return recieved
 
+    def is_closed(self):
+        if self.conn:
+            return self.conn.closed
+        return True
+
+    def _conn_close(self):
+        try:
+            if self.conn:
+                # sometime code can't close in time
+                self.conn.close()
+        finally:
+            pass
+
+    def _send_response(self, line, responses):
+        # return position next to question
+        if responses:
+            for response in responses:
+                # question check
+                question_pos = line.find(response['question'])
+                if question_pos != -1:
+                    # response to question
+                    self._conn_send(response.get('answer', ""))
+                    if response.get('newline', False):
+                        self._conn_send("\n")
+                    return question_pos + len(response['question'])
+        return -1
+
+    # search/cleanup in buf
     def _find_any_in(self, buff, promt_check):
         for code in promt_check:
             position = buff.find(code)
@@ -218,20 +248,6 @@ class RawConnection(BaseConnection):
                 )
         return response.strip()
 
-    def _send_response(self, line, responses):
-        # return position next to question
-        if responses:
-            for response in responses:
-                # question check
-                question_pos = line.find(response['question'])
-                if question_pos != -1:
-                    # response to question
-                    self._conn_send(response.get('answer', ""))
-                    if response.get('newline', False):
-                        self._conn_send("\n")
-                    return question_pos + len(response['question'])
-        return -1
-
     def run(self, command, prompt_check=None, warning_examples=None,
             error_examples=None, critical_examples=None,
             responses=None):
@@ -304,20 +320,11 @@ class RawConnection(BaseConnection):
                                       error_examples=error_examples,
                                       critical_examples=critical_examples)
 
-    def is_closed(self):
-        if self.conn:
-            return self.conn.closed
-        return True
-
     def close(self):
         """close connection"""
-        try:
-            if self.conn:
-                # sometime code can't close in time
-                self.conn.close()
-        finally:
-            if self.ssh:
-                self.ssh.close()
+        self._conn_close()
+        if self.ssh:
+            self.ssh.close()
 
     def __del__(self):
         """Close connections for sure"""
