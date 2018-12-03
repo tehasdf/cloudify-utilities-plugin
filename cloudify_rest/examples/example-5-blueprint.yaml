@@ -14,7 +14,7 @@ inputs:
 node_templates:
 
   bunch-calls:
-    type: cloudify.rest.RequestGroups
+    type: cloudify.rest.BunchRequests
     properties:
       hosts: [{ get_input: rest_endpoint }]
       port: 443
@@ -27,12 +27,14 @@ node_templates:
             templates:
             - template_file: templates/get-user-all-properties-template.yaml
               save_to: user-details
-            #- template_file: templates/create-user-post-template.yaml
-              #params:
-                #USER_ID: {get_attribute: [user-details, user, id]}
-                #USERNAME: { get_attribute: [user-details, user, username] }
-                #WEBSITE: { get_attribute: [user-details, user, website] }
-                #POST_ID: "1"
-            #- template_file: templates/delete-user-post-template.yaml
-              #params:
-                #POST_ID: "1"
+            - template_file: templates/create-user-post-template.yaml
+              save_to: post_result
+              params_attributes:
+                USER_ID: [user-details, result_properties, user, id]
+                USERNAME: [user-details, result_properties, user, username]
+                WEBSITE: [user-details, result_properties, user, website]
+              params:
+                POST_ID: "1"
+            - template_file: templates/delete-user-post-template.yaml
+              params:
+                POST_ID: "1"

@@ -35,13 +35,13 @@ TEMPLATE_PROPERTY_RETRY_ON_CONNECTION_ERROR = 'retry_on_connection_error'
 
 #  request_props (port, ssl, verify, hosts )
 def process(params, template, request_props):
-    logger.debug('template : {}'.format(template))
+    logger.info('Template:\n{}...'.format(str(template)[:4096]))
     template_yaml = yaml.load(template)
     result_properties = {}
     calls = []
     for call in template_yaml['rest_calls']:
         call_with_request_props = request_props.copy()
-        logger.debug('call \n {}'.format(call))
+        logger.debug('Call \n {}'.format(call))
         # enrich params with items stored in runtime props by prev calls
         params.update(result_properties)
         call = str(call)
@@ -52,10 +52,8 @@ def process(params, template, request_props):
         rendered_call = template_engine.render(params)
         call = ast.literal_eval(rendered_call)
         calls.append(call)
-        logger.debug('rendered call \n {}'.format(call))
+        logger.debug('Rendered call: {}'.format(repr(call)))
         call_with_request_props.update(call)
-        logger.info(
-            'call_with_request_props \n {}'.format(call_with_request_props))
         response = _send_request(call_with_request_props)
         _process_response(response, call, result_properties)
     result_properties = {'result_properties': result_properties,
@@ -64,8 +62,7 @@ def process(params, template, request_props):
 
 
 def _send_request(call):
-    logger.info(
-        '_send_request request_props:{}'.format(call))
+    logger.debug('Request props: {}'.format(repr(call)))
     port = call['port']
     ssl = call['ssl']
     if port == -1:
@@ -76,7 +73,7 @@ def _send_request(call):
         full_url = '{}://{}:{}{}'.format('https' if ssl else 'http', host,
                                          port,
                                          call['path'])
-        logger.debug('full_url : {}'.format(full_url))
+        logger.debug('Full url: {}'.format(repr(full_url)))
         # check if payload can be used as json
         if call.get('payload_format', 'json') == 'json':
             data = None
@@ -92,7 +89,7 @@ def _send_request(call):
                                         json=json_payload,
                                         verify=call['verify'])
         except requests.exceptions.ConnectionError as e:
-            logger.debug('ConnectionError for host : {}'.format(host))
+            logger.debug('ConnectionError for host: {}'.format(repr(host)))
 
             if TEMPLATE_PROPERTY_RETRY_ON_CONNECTION_ERROR in call and \
                     call[TEMPLATE_PROPERTY_RETRY_ON_CONNECTION_ERROR]:
@@ -110,10 +107,9 @@ def _send_request(call):
                 logger.error('No host from list available')
                 raise
 
-    logger.info(
-        'Response \n content:{}\n status_code:{}\n'
-        .format(response.content, response.status_code)
-    )
+    logger.info('Response content: \n{}...'
+                .format(str(response.content)[:4096]))
+    logger.info('Status code: {}'.format(repr(response.status_code)))
 
     try:
         response.raise_for_status()
@@ -127,20 +123,19 @@ def _send_request(call):
 
 
 def _process_response(response, call, store_props):
-    logger.debug(
-        '_process_response \n response:{}\n call:{}\n store_props:{}'.format(
-            response,
-            call, store_props))
-    response_format = call.get('response_format', 'json').upper()
+    logger.debug('Process Response: {}'.format(repr(response)))
+    logger.debug('Call: {}'.format(repr(call)))
+    logger.debug('Store props: {}'.format(repr(store_props)))
 
+    response_format = call.get('response_format', 'json').upper()
     if re.match('JSON|XML', response_format):
         if response_format == 'JSON':
-            logger.debug('response_format json')
+            logger.debug('Response format is json')
             json = response.json()
         else:  # XML
-            logger.debug('response_format xml')
+            logger.debug('Response format is xml')
             json = xmltodict.parse(response.text)
-            logger.debug('xml transformed to dict \n{}'.format(json))
+            logger.debug('XML transformed to dict: {}'.format(repr(json)))
 
         _check_response(json, call.get('nonrecoverable_response'), False)
         _check_response(json, call.get('response_expectation'), True)
@@ -148,25 +143,21 @@ def _process_response(response, call, store_props):
         _translate_and_save(json, call.get('response_translation', None),
                             store_props)
     elif response_format == 'RAW':
-        logger.debug('no action for raw response_format')
+        logger.debug('No action for raw response_format')
     else:
         raise WrongTemplateDataException(
             "Response_format {} is not supported. "
-            "Only json or raw response_format is supported".format(
+            "Only json/xml or raw response_format is supported".format(
                 response_format))
 
 
 def _check_response(json, response, is_recoverable):
     if not is_recoverable:
-        logger.debug(
-            '_check_response (nonrecoverable)\n json:{}\n '
-            'response:{} \n'.format(
-                json, response))
+        logger.debug('Check response (nonrecoverable) in json: {} by {}'
+                     .format(repr(json), repr(response)))
     else:
-        logger.debug(
-            '_check_response (recoverable)\n json:{}\n '
-            'response:{} \n'.format(
-                json, response))
+        logger.debug('Check response (recoverable) in json: {} by {}'
+                     .format(repr(json), repr(response)))
 
     if not response:
         return
