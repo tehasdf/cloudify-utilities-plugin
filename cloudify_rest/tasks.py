@@ -16,9 +16,17 @@
 import traceback
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError, RecoverableError
+from cloudify.decorators import operation
+
 from rest_sdk import utility, exceptions
 
 
+@operation
+def bunch_execute(params=None, template_file=None, **kwargs):
+    pass
+
+
+@operation
 def execute(params=None, template_file=None, **kwargs):
 
     params = params or {}
@@ -33,6 +41,7 @@ def execute(params=None, template_file=None, **kwargs):
     _execute(runtime_properties, template_file, ctx.instance, ctx.node)
 
 
+@operation
 def execute_as_relationship(params, template_file, **kwargs):
     ctx.logger.debug(
         'execute_as_relationship \n '
